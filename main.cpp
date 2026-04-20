@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cassert>
-#include "graph.h"
+#include "graph.hpp"
 
 using namespace graph;
 
