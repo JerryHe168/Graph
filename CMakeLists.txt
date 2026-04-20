@@ -10,7 +10,7 @@ add_executable(graph_test main.cpp)
 target_include_directories(graph_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(MSVC)
-    target_compile_options(graph_test PRIVATE /W4)
+    target_compile_options(graph_test PRIVATE /W4 /utf-8)
 else()
     target_compile_options(graph_test PRIVATE -Wall -Wextra -Wpedantic)
 endif()
