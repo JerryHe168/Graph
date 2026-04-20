@@ -12,8 +12,8 @@ void testBasicNodeOperations() {
     assert(g.isEmpty() == true);
     assert(g.getNodeCount() == 0);
     
-    Graph<int>::Node* n1 = g.addNode(10);
-    Graph<int>::Node* n2 = g.addNode(20);
+    Node<int>* n1 = g.addNode(10);
+    Node<int>* n2 = g.addNode(20);
     
     assert(g.isEmpty() == false);
     assert(g.getNodeCount() == 2);
@@ -22,19 +22,19 @@ void testBasicNodeOperations() {
     assert(n1->getData() == 10);
     assert(n2->getData() == 20);
     
-    Graph<int>::Node* n3 = g.addNodeWithId(100, 100);
+    Node<int>* n3 = g.addNodeWithId(100, 100);
     assert(n3 != nullptr);
     assert(n3->getId() == 100);
     assert(n3->getData() == 100);
     assert(g.getNodeCount() == 3);
     
-    Graph<int>::Node* duplicate = g.addNodeWithId(0, 999);
+    Node<int>* duplicate = g.addNodeWithId(0, 999);
     assert(duplicate == nullptr);
     
     assert(g.containsNode(0) == true);
     assert(g.containsNode(999) == false);
     
-    Graph<int>::Node* found = g.getNode(0);
+    Node<int>* found = g.getNode(0);
     assert(found != nullptr);
     assert(found->getId() == 0);
     
@@ -55,14 +55,14 @@ void testBasicEdgeOperations() {
     
     Graph<std::string> g("EdgeTest", false);
     
-    Graph<std::string>::Node* n1 = g.addNode("A");
-    Graph<std::string>::Node* n2 = g.addNode("B");
-    Graph<std::string>::Node* n3 = g.addNode("C");
+    Node<std::string>* n1 = g.addNode("A");
+    Node<std::string>* n2 = g.addNode("B");
+    Node<std::string>* n3 = g.addNode("C");
     
     assert(g.getEdgeCount() == 0);
     
-    Graph<std::string>::Edge* e1 = g.addEdge(n1, n2, 2.5);
-    Graph<std::string>::Edge* e2 = g.addEdge(n2->getId(), n3->getId(), 3.0);
+    Edge<std::string>* e1 = g.addEdge(n1, n2, 2.5);
+    Edge<std::string>* e2 = g.addEdge(n2->getId(), n3->getId(), 3.0);
     
     assert(g.getEdgeCount() == 2);
     assert(e1->getWeight() == 2.5);
@@ -73,7 +73,7 @@ void testBasicEdgeOperations() {
     assert(g.containsEdge(e1->getId()) == true);
     assert(g.containsEdge(999) == false);
     
-    Graph<std::string>::Edge* found = g.getEdge(e1->getId());
+    Edge<std::string>* found = g.getEdge(e1->getId());
     assert(found != nullptr);
     assert(found->getWeight() == 2.5);
     
@@ -83,7 +83,7 @@ void testBasicEdgeOperations() {
     assert(g.hasEdge(n1, n2) == true);
     assert(g.hasEdge(n1, n3) == false);
     
-    Graph<std::string>::Edge* foundEdge = g.findEdge(n1, n2);
+    Edge<std::string>* foundEdge = g.findEdge(n1, n2);
     assert(foundEdge != nullptr);
     assert(foundEdge->getId() == e1->getId());
     
@@ -101,9 +101,9 @@ void testDirectedGraph() {
     
     Graph<int> g("DirectedGraph", true);
     
-    Graph<int>::Node* n1 = g.addNode(1);
-    Graph<int>::Node* n2 = g.addNode(2);
-    Graph<int>::Node* n3 = g.addNode(3);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
+    Node<int>* n3 = g.addNode(3);
     
     g.addEdge(n1, n2);
     g.addEdge(n2, n3);
@@ -119,7 +119,7 @@ void testDirectedGraph() {
     assert(g.hasEdge(n1, n2) == true);
     assert(g.hasEdge(n2, n1) == false);
     
-    std::vector<Graph<int>::Node*> neighbors = g.getNeighbors(n1);
+    std::vector<Node<int>*> neighbors = g.getNeighbors(n1);
     assert(neighbors.size() == 2);
     
     neighbors = g.getNeighbors(n2);
@@ -133,8 +133,8 @@ void testUndirectedGraph() {
     
     Graph<int> g("UndirectedGraph", false);
     
-    Graph<int>::Node* n1 = g.addNode(1);
-    Graph<int>::Node* n2 = g.addNode(2);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
     
     g.addEdge(n1, n2);
     
@@ -149,7 +149,7 @@ void testUndirectedGraph() {
     assert(g.hasEdge(n1, n2) == true);
     assert(g.hasEdge(n2, n1) == true);
     
-    Graph<int>::Edge* e = g.findEdge(n2, n1);
+    Edge<int>* e = g.findEdge(n2, n1);
     assert(e != nullptr);
     
     std::cout << "无向图测试通过!" << std::endl;
@@ -202,9 +202,9 @@ void testNodeRemovalCleansEdges() {
     
     Graph<int> g("CleanupTest", false);
     
-    Graph<int>::Node* n1 = g.addNode(1);
-    Graph<int>::Node* n2 = g.addNode(2);
-    Graph<int>::Node* n3 = g.addNode(3);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
+    Node<int>* n3 = g.addNode(3);
     
     g.addEdge(n1, n2);
     g.addEdge(n2, n3);
@@ -229,18 +229,18 @@ void testGetEdgesFromTo() {
     
     Graph<std::string> g("EdgeQueryTest", true);
     
-    Graph<std::string>::Node* n1 = g.addNode("A");
-    Graph<std::string>::Node* n2 = g.addNode("B");
-    Graph<std::string>::Node* n3 = g.addNode("C");
+    Node<std::string>* n1 = g.addNode("A");
+    Node<std::string>* n2 = g.addNode("B");
+    Node<std::string>* n3 = g.addNode("C");
     
     g.addEdge(n1, n2);
     g.addEdge(n1, n3);
     g.addEdge(n2, n3);
     
-    std::vector<Graph<std::string>::Edge*> outEdges = g.getEdgesFrom(n1->getId());
+    std::vector<Edge<std::string>*> outEdges = g.getEdgesFrom(n1->getId());
     assert(outEdges.size() == 2);
     
-    std::vector<Graph<std::string>::Edge*> inEdges = g.getEdgesTo(n3->getId());
+    std::vector<Edge<std::string>*> inEdges = g.getEdgesTo(n3->getId());
     assert(inEdges.size() == 2);
     
     inEdges = g.getEdgesTo(n1->getId());
@@ -282,8 +282,8 @@ void testCopyOperations() {
     std::cout << "\n===== 测试拷贝操作 =====" << std::endl;
     
     Graph<std::string> original("Original", true);
-    Graph<std::string>::Node* n1 = original.addNode("A");
-    Graph<std::string>::Node* n2 = original.addNode("B");
+    Node<std::string>* n1 = original.addNode("A");
+    Node<std::string>* n2 = original.addNode("B");
     original.addEdge(n1, n2, 3.5);
     original.createSubGraph("Sub");
     
@@ -295,12 +295,12 @@ void testCopyOperations() {
     assert(copy.getEdgeCount() == 1);
     assert(copy.getSubGraphCount() == 1);
     
-    Graph<std::string>::Node* copyN1 = copy.getNode(0);
-    Graph<std::string>::Node* copyN2 = copy.getNode(1);
+    Node<std::string>* copyN1 = copy.getNode(0);
+    Node<std::string>* copyN2 = copy.getNode(1);
     assert(copyN1->getData() == "A");
     assert(copyN2->getData() == "B");
     
-    Graph<std::string>::Edge* copyE = copy.findEdge(copyN1, copyN2);
+    Edge<std::string>* copyE = copy.findEdge(copyN1, copyN2);
     assert(copyE != nullptr);
     assert(copyE->getWeight() == 3.5);
     
@@ -343,10 +343,10 @@ void testNeighborQueries() {
     
     Graph<int> g("NeighborTest", false);
     
-    Graph<int>::Node* n0 = g.addNode(0);
-    Graph<int>::Node* n1 = g.addNode(1);
-    Graph<int>::Node* n2 = g.addNode(2);
-    Graph<int>::Node* n3 = g.addNode(3);
+    Node<int>* n0 = g.addNode(0);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
+    Node<int>* n3 = g.addNode(3);
     
     g.addEdge(n0, n1);
     g.addEdge(n0, n2);
@@ -356,7 +356,7 @@ void testNeighborQueries() {
     std::vector<int> neighbors = g.getNeighborIds(0);
     assert(neighbors.size() == 2);
     
-    std::vector<Graph<int>::Node*> neighborNodes = g.getNeighbors(n0);
+    std::vector<Node<int>*> neighborNodes = g.getNeighbors(n0);
     assert(neighborNodes.size() == 2);
     
     neighbors = g.getNeighborIds(999);
@@ -375,14 +375,14 @@ void testEdgeCases() {
     
     assert(g.addEdge(0, 1) == nullptr);
     
-    Graph<int>::Node* n1 = g.addNode(1);
-    Graph<int>::Node* n2 = g.addNode(2);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
     
     assert(g.addEdge(nullptr, n2) == nullptr);
     assert(g.addEdge(n1, nullptr) == nullptr);
     
     Graph<int> other("Other", true);
-    Graph<int>::Node* otherNode = other.addNode(999);
+    Node<int>* otherNode = other.addNode(999);
     assert(g.addEdge(otherNode, n1) == nullptr);
     
     assert(g.removeNode(nullptr) == false);
