@@ -10,33 +10,68 @@
 namespace graph {
 namespace algo {
 
-template<typename T>
-std::vector<Node<T>*> bfs(const Graph<T>& graph, int startNodeId) {
-    std::vector<Node<T>*> result;
-    Node<T>* startNode = const_cast<Graph<T>&>(graph).getNode(startNodeId);
+namespace {
+
+// 模板辅助类，用于获取节点的邻居
+struct NodeTraits {
+    template<typename T>
+    static std::vector<Node<T>*> getNeighbors(const Graph<T>& graph, Node<T>* node) {
+        return graph.getNeighbors(node);
+    }
+
+    template<typename T>
+    static std::vector<const Node<T>*> getNeighbors(const Graph<T>& graph, const Node<T>* node) {
+        return graph.getNeighborsConst(node);
+    }
+
+    template<typename T>
+    static Node<T>* getNode(const Graph<T>& graph, int nodeId) {
+        return const_cast<Graph<T>&>(graph).getNode(nodeId);
+    }
+
+    template<typename T>
+    static const Node<T>* getNode(const Graph<T>& graph, int nodeId) {
+        return graph.getNode(nodeId);
+    }
+};
+
+} // namespace
+
+template<typename T, typename NodePtr>
+std::vector<NodePtr> bfsImpl(const Graph<T>& graph, int startNodeId, std::unordered_set<int>* visited) {
+    std::vector<NodePtr> result;
+    NodePtr startNode = NodeTraits::getNode(graph, startNodeId);
     if (!startNode) return result;
 
-    std::unordered_set<int> visited;
-    std::queue<Node<T>*> q;
+    std::unordered_set<int> localVisited;
+    std::unordered_set<int>& visitSet = visited ? *visited : localVisited;
+    std::queue<NodePtr> q;
 
-    q.push(startNode);
-    visited.insert(startNodeId);
+    if (visitSet.find(startNodeId) == visitSet.end()) {
+        q.push(startNode);
+        visitSet.insert(startNodeId);
+    }
 
     while (!q.empty()) {
-        Node<T>* current = q.front();
+        NodePtr current = q.front();
         q.pop();
         result.push_back(current);
 
-        std::vector<Node<T>*> neighbors = graph.getNeighbors(current);
-        for (Node<T>* neighbor : neighbors) {
-            if (visited.find(neighbor->getId()) == visited.end()) {
-                visited.insert(neighbor->getId());
+        auto neighbors = NodeTraits::getNeighbors(graph, current);
+        for (auto neighbor : neighbors) {
+            if (visitSet.find(neighbor->getId()) == visitSet.end()) {
+                visitSet.insert(neighbor->getId());
                 q.push(neighbor);
             }
         }
     }
 
     return result;
+}
+
+template<typename T>
+std::vector<Node<T>*> bfs(const Graph<T>& graph, int startNodeId) {
+    return bfsImpl<T, Node<T>*>(graph, startNodeId, nullptr);
 }
 
 template<typename T>
@@ -49,32 +84,7 @@ std::vector<Node<T>*> bfs(const Graph<T>& graph, const Node<T>* startNode) {
 
 template<typename T>
 std::vector<Node<T>*> bfs(const Graph<T>& graph, int startNodeId, std::unordered_set<int>& visited) {
-    std::vector<Node<T>*> result;
-    Node<T>* startNode = const_cast<Graph<T>&>(graph).getNode(startNodeId);
-    if (!startNode) return result;
-
-    std::queue<Node<T>*> q;
-
-    if (visited.find(startNodeId) == visited.end()) {
-        q.push(startNode);
-        visited.insert(startNodeId);
-    }
-
-    while (!q.empty()) {
-        Node<T>* current = q.front();
-        q.pop();
-        result.push_back(current);
-
-        std::vector<Node<T>*> neighbors = graph.getNeighbors(current);
-        for (Node<T>* neighbor : neighbors) {
-            if (visited.find(neighbor->getId()) == visited.end()) {
-                visited.insert(neighbor->getId());
-                q.push(neighbor);
-            }
-        }
-    }
-
-    return result;
+    return bfsImpl<T, Node<T>*>(graph, startNodeId, &visited);
 }
 
 template<typename T>
@@ -97,31 +107,7 @@ std::vector<int> bfsIds(const Graph<T>& graph, int startNodeId) {
 
 template<typename T>
 std::vector<const Node<T>*> bfsConst(const Graph<T>& graph, int startNodeId) {
-    std::vector<const Node<T>*> result;
-    const Node<T>* startNode = graph.getNode(startNodeId);
-    if (!startNode) return result;
-
-    std::unordered_set<int> visited;
-    std::queue<const Node<T>*> q;
-
-    q.push(startNode);
-    visited.insert(startNodeId);
-
-    while (!q.empty()) {
-        const Node<T>* current = q.front();
-        q.pop();
-        result.push_back(current);
-
-        std::vector<const Node<T>*> neighbors = graph.getNeighborsConst(current);
-        for (const Node<T>* neighbor : neighbors) {
-            if (visited.find(neighbor->getId()) == visited.end()) {
-                visited.insert(neighbor->getId());
-                q.push(neighbor);
-            }
-        }
-    }
-
-    return result;
+    return bfsImpl<T, const Node<T>*>(graph, startNodeId, nullptr);
 }
 
 template<typename T>
@@ -134,32 +120,7 @@ std::vector<const Node<T>*> bfsConst(const Graph<T>& graph, const Node<T>* start
 
 template<typename T>
 std::vector<const Node<T>*> bfsConst(const Graph<T>& graph, int startNodeId, std::unordered_set<int>& visited) {
-    std::vector<const Node<T>*> result;
-    const Node<T>* startNode = graph.getNode(startNodeId);
-    if (!startNode) return result;
-
-    std::queue<const Node<T>*> q;
-
-    if (visited.find(startNodeId) == visited.end()) {
-        q.push(startNode);
-        visited.insert(startNodeId);
-    }
-
-    while (!q.empty()) {
-        const Node<T>* current = q.front();
-        q.pop();
-        result.push_back(current);
-
-        std::vector<const Node<T>*> neighbors = graph.getNeighborsConst(current);
-        for (const Node<T>* neighbor : neighbors) {
-            if (visited.find(neighbor->getId()) == visited.end()) {
-                visited.insert(neighbor->getId());
-                q.push(neighbor);
-            }
-        }
-    }
-
-    return result;
+    return bfsImpl<T, const Node<T>*>(graph, startNodeId, &visited);
 }
 
 template<typename T>
@@ -170,34 +131,42 @@ std::vector<const Node<T>*> bfsConst(const Graph<T>& graph, const Node<T>* start
     return bfsConst(graph, startNode->getId(), visited);
 }
 
-template<typename T>
-std::vector<Node<T>*> dfs(const Graph<T>& graph, int startNodeId) {
-    std::vector<Node<T>*> result;
-    Node<T>* startNode = const_cast<Graph<T>&>(graph).getNode(startNodeId);
+template<typename T, typename NodePtr>
+std::vector<NodePtr> dfsImpl(const Graph<T>& graph, int startNodeId, std::unordered_set<int>* visited) {
+    std::vector<NodePtr> result;
+    NodePtr startNode = NodeTraits::getNode(graph, startNodeId);
     if (!startNode) return result;
 
-    std::unordered_set<int> visited;
-    std::stack<Node<T>*> s;
+    std::unordered_set<int> localVisited;
+    std::unordered_set<int>& visitSet = visited ? *visited : localVisited;
+    std::stack<NodePtr> s;
 
-    s.push(startNode);
-    visited.insert(startNodeId);
+    if (visitSet.find(startNodeId) == visitSet.end()) {
+        s.push(startNode);
+        visitSet.insert(startNodeId);
+    }
 
     while (!s.empty()) {
-        Node<T>* current = s.top();
+        NodePtr current = s.top();
         s.pop();
         result.push_back(current);
 
-        std::vector<Node<T>*> neighbors = graph.getNeighbors(current);
+        auto neighbors = NodeTraits::getNeighbors(graph, current);
         for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it) {
-            Node<T>* neighbor = *it;
-            if (visited.find(neighbor->getId()) == visited.end()) {
-                visited.insert(neighbor->getId());
+            auto neighbor = *it;
+            if (visitSet.find(neighbor->getId()) == visitSet.end()) {
+                visitSet.insert(neighbor->getId());
                 s.push(neighbor);
             }
         }
     }
 
     return result;
+}
+
+template<typename T>
+std::vector<Node<T>*> dfs(const Graph<T>& graph, int startNodeId) {
+    return dfsImpl<T, Node<T>*>(graph, startNodeId, nullptr);
 }
 
 template<typename T>
@@ -210,33 +179,7 @@ std::vector<Node<T>*> dfs(const Graph<T>& graph, const Node<T>* startNode) {
 
 template<typename T>
 std::vector<Node<T>*> dfs(const Graph<T>& graph, int startNodeId, std::unordered_set<int>& visited) {
-    std::vector<Node<T>*> result;
-    Node<T>* startNode = const_cast<Graph<T>&>(graph).getNode(startNodeId);
-    if (!startNode) return result;
-
-    std::stack<Node<T>*> s;
-
-    if (visited.find(startNodeId) == visited.end()) {
-        s.push(startNode);
-        visited.insert(startNodeId);
-    }
-
-    while (!s.empty()) {
-        Node<T>* current = s.top();
-        s.pop();
-        result.push_back(current);
-
-        std::vector<Node<T>*> neighbors = graph.getNeighbors(current);
-        for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it) {
-            Node<T>* neighbor = *it;
-            if (visited.find(neighbor->getId()) == visited.end()) {
-                visited.insert(neighbor->getId());
-                s.push(neighbor);
-            }
-        }
-    }
-
-    return result;
+    return dfsImpl<T, Node<T>*>(graph, startNodeId, &visited);
 }
 
 template<typename T>
@@ -259,32 +202,7 @@ std::vector<int> dfsIds(const Graph<T>& graph, int startNodeId) {
 
 template<typename T>
 std::vector<const Node<T>*> dfsConst(const Graph<T>& graph, int startNodeId) {
-    std::vector<const Node<T>*> result;
-    const Node<T>* startNode = graph.getNode(startNodeId);
-    if (!startNode) return result;
-
-    std::unordered_set<int> visited;
-    std::stack<const Node<T>*> s;
-
-    s.push(startNode);
-    visited.insert(startNodeId);
-
-    while (!s.empty()) {
-        const Node<T>* current = s.top();
-        s.pop();
-        result.push_back(current);
-
-        std::vector<const Node<T>*> neighbors = graph.getNeighborsConst(current);
-        for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it) {
-            const Node<T>* neighbor = *it;
-            if (visited.find(neighbor->getId()) == visited.end()) {
-                visited.insert(neighbor->getId());
-                s.push(neighbor);
-            }
-        }
-    }
-
-    return result;
+    return dfsImpl<T, const Node<T>*>(graph, startNodeId, nullptr);
 }
 
 template<typename T>
@@ -297,33 +215,7 @@ std::vector<const Node<T>*> dfsConst(const Graph<T>& graph, const Node<T>* start
 
 template<typename T>
 std::vector<const Node<T>*> dfsConst(const Graph<T>& graph, int startNodeId, std::unordered_set<int>& visited) {
-    std::vector<const Node<T>*> result;
-    const Node<T>* startNode = graph.getNode(startNodeId);
-    if (!startNode) return result;
-
-    std::stack<const Node<T>*> s;
-
-    if (visited.find(startNodeId) == visited.end()) {
-        s.push(startNode);
-        visited.insert(startNodeId);
-    }
-
-    while (!s.empty()) {
-        const Node<T>* current = s.top();
-        s.pop();
-        result.push_back(current);
-
-        std::vector<const Node<T>*> neighbors = graph.getNeighborsConst(current);
-        for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it) {
-            const Node<T>* neighbor = *it;
-            if (visited.find(neighbor->getId()) == visited.end()) {
-                visited.insert(neighbor->getId());
-                s.push(neighbor);
-            }
-        }
-    }
-
-    return result;
+    return dfsImpl<T, const Node<T>*>(graph, startNodeId, &visited);
 }
 
 template<typename T>
@@ -336,47 +228,55 @@ std::vector<const Node<T>*> dfsConst(const Graph<T>& graph, const Node<T>* start
 
 namespace {
 
+template<typename T, typename NodePtr, typename Result>
+void dfsRecursiveHelperImpl(const Graph<T>& graph, NodePtr current,
+                           std::unordered_set<int>& visited,
+                           Result& result) {
+    visited.insert(current->getId());
+    result.push_back(current);
+
+    auto neighbors = NodeTraits::getNeighbors(graph, current);
+    for (auto neighbor : neighbors) {
+        if (visited.find(neighbor->getId()) == visited.end()) {
+            dfsRecursiveHelperImpl(graph, neighbor, visited, result);
+        }
+    }
+}
+
 template<typename T>
 void dfsRecursiveHelper(const Graph<T>& graph, Node<T>* current,
                          std::unordered_set<int>& visited,
                          std::vector<Node<T>*>& result) {
-    visited.insert(current->getId());
-    result.push_back(current);
-
-    std::vector<Node<T>*> neighbors = graph.getNeighbors(current);
-    for (Node<T>* neighbor : neighbors) {
-        if (visited.find(neighbor->getId()) == visited.end()) {
-            dfsRecursiveHelper(graph, neighbor, visited, result);
-        }
-    }
+    dfsRecursiveHelperImpl(graph, current, visited, result);
 }
 
 template<typename T>
 void dfsRecursiveHelperConst(const Graph<T>& graph, const Node<T>* current,
                               std::unordered_set<int>& visited,
                               std::vector<const Node<T>*>& result) {
-    visited.insert(current->getId());
-    result.push_back(current);
-
-    std::vector<const Node<T>*> neighbors = graph.getNeighborsConst(current);
-    for (const Node<T>* neighbor : neighbors) {
-        if (visited.find(neighbor->getId()) == visited.end()) {
-            dfsRecursiveHelperConst(graph, neighbor, visited, result);
-        }
-    }
+    dfsRecursiveHelperImpl(graph, current, visited, result);
 }
 
+}
+
+template<typename T, typename NodePtr, typename Result>
+Result dfsRecursiveImpl(const Graph<T>& graph, int startNodeId, std::unordered_set<int>* visited) {
+    Result result;
+    NodePtr startNode = NodeTraits::getNode(graph, startNodeId);
+    if (!startNode) return result;
+
+    std::unordered_set<int> localVisited;
+    std::unordered_set<int>& visitSet = visited ? *visited : localVisited;
+
+    if (visitSet.find(startNodeId) == visitSet.end()) {
+        dfsRecursiveHelperImpl(graph, startNode, visitSet, result);
+    }
+    return result;
 }
 
 template<typename T>
 std::vector<Node<T>*> dfsRecursive(const Graph<T>& graph, int startNodeId) {
-    std::vector<Node<T>*> result;
-    Node<T>* startNode = const_cast<Graph<T>&>(graph).getNode(startNodeId);
-    if (!startNode) return result;
-
-    std::unordered_set<int> visited;
-    dfsRecursiveHelper(graph, startNode, visited, result);
-    return result;
+    return dfsRecursiveImpl<T, Node<T>*, std::vector<Node<T>*>>(graph, startNodeId, nullptr);
 }
 
 template<typename T>
@@ -389,14 +289,7 @@ std::vector<Node<T>*> dfsRecursive(const Graph<T>& graph, const Node<T>* startNo
 
 template<typename T>
 std::vector<Node<T>*> dfsRecursive(const Graph<T>& graph, int startNodeId, std::unordered_set<int>& visited) {
-    std::vector<Node<T>*> result;
-    Node<T>* startNode = const_cast<Graph<T>&>(graph).getNode(startNodeId);
-    if (!startNode) return result;
-
-    if (visited.find(startNodeId) == visited.end()) {
-        dfsRecursiveHelper(graph, startNode, visited, result);
-    }
-    return result;
+    return dfsRecursiveImpl<T, Node<T>*, std::vector<Node<T>*>>(graph, startNodeId, &visited);
 }
 
 template<typename T>
@@ -409,13 +302,7 @@ std::vector<Node<T>*> dfsRecursive(const Graph<T>& graph, const Node<T>* startNo
 
 template<typename T>
 std::vector<const Node<T>*> dfsRecursiveConst(const Graph<T>& graph, int startNodeId) {
-    std::vector<const Node<T>*> result;
-    const Node<T>* startNode = graph.getNode(startNodeId);
-    if (!startNode) return result;
-
-    std::unordered_set<int> visited;
-    dfsRecursiveHelperConst(graph, startNode, visited, result);
-    return result;
+    return dfsRecursiveImpl<T, const Node<T>*, std::vector<const Node<T>*>>(graph, startNodeId, nullptr);
 }
 
 template<typename T>
@@ -428,14 +315,7 @@ std::vector<const Node<T>*> dfsRecursiveConst(const Graph<T>& graph, const Node<
 
 template<typename T>
 std::vector<const Node<T>*> dfsRecursiveConst(const Graph<T>& graph, int startNodeId, std::unordered_set<int>& visited) {
-    std::vector<const Node<T>*> result;
-    const Node<T>* startNode = graph.getNode(startNodeId);
-    if (!startNode) return result;
-
-    if (visited.find(startNodeId) == visited.end()) {
-        dfsRecursiveHelperConst(graph, startNode, visited, result);
-    }
-    return result;
+    return dfsRecursiveImpl<T, const Node<T>*, std::vector<const Node<T>*>>(graph, startNodeId, &visited);
 }
 
 template<typename T>
