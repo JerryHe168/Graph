@@ -13,25 +13,44 @@ namespace algo {
 namespace {
 
 // 模板辅助类，用于获取节点的邻居
-struct NodeTraits {
-    template<typename T>
-    static std::vector<Node<T>*> getNeighbors(const Graph<T>& graph, Node<T>* node) {
+template<typename NodePtr>
+struct NodeTraitsHelper;
+
+template<typename T>
+struct NodeTraitsHelper<Node<T>*> {
+    template<typename U>
+    static Node<U>* getNode(const Graph<U>& graph, int nodeId) {
+        return const_cast<Graph<U>&>(graph).getNode(nodeId);
+    }
+
+    template<typename U>
+    static std::vector<Node<U>*> getNeighbors(const Graph<U>& graph, Node<U>* node) {
         return graph.getNeighbors(node);
     }
+};
 
-    template<typename T>
-    static std::vector<const Node<T>*> getNeighbors(const Graph<T>& graph, const Node<T>* node) {
+template<typename T>
+struct NodeTraitsHelper<const Node<T>*> {
+    template<typename U>
+    static const Node<U>* getNode(const Graph<U>& graph, int nodeId) {
+        return graph.getNode(nodeId);
+    }
+
+    template<typename U>
+    static std::vector<const Node<U>*> getNeighbors(const Graph<U>& graph, const Node<U>* node) {
         return graph.getNeighborsConst(node);
     }
+};
 
-    template<typename T>
-    static Node<T>* getNode(const Graph<T>& graph, int nodeId) {
-        return const_cast<Graph<T>&>(graph).getNode(nodeId);
+struct NodeTraits {
+    template<typename NodePtr, typename T>
+    static NodePtr getNode(const Graph<T>& graph, int nodeId) {
+        return NodeTraitsHelper<NodePtr>::template getNode<T>(graph, nodeId);
     }
 
-    template<typename T>
-    static const Node<T>* getNode(const Graph<T>& graph, int nodeId) {
-        return graph.getNode(nodeId);
+    template<typename NodePtr, typename T>
+    static auto getNeighbors(const Graph<T>& graph, NodePtr node) -> decltype(NodeTraitsHelper<NodePtr>::template getNeighbors<T>(graph, node)) {
+        return NodeTraitsHelper<NodePtr>::template getNeighbors<T>(graph, node);
     }
 };
 
@@ -40,7 +59,7 @@ struct NodeTraits {
 template<typename T, typename NodePtr>
 std::vector<NodePtr> bfsImpl(const Graph<T>& graph, int startNodeId, std::unordered_set<int>* visited) {
     std::vector<NodePtr> result;
-    NodePtr startNode = NodeTraits::getNode(graph, startNodeId);
+    NodePtr startNode = NodeTraits::getNode<NodePtr, T>(graph, startNodeId);
     if (!startNode) return result;
 
     std::unordered_set<int> localVisited;
@@ -57,7 +76,7 @@ std::vector<NodePtr> bfsImpl(const Graph<T>& graph, int startNodeId, std::unorde
         q.pop();
         result.push_back(current);
 
-        auto neighbors = NodeTraits::getNeighbors(graph, current);
+        auto neighbors = NodeTraits::getNeighbors<NodePtr, T>(graph, current);
         for (auto neighbor : neighbors) {
             if (visitSet.find(neighbor->getId()) == visitSet.end()) {
                 visitSet.insert(neighbor->getId());
@@ -134,7 +153,7 @@ std::vector<const Node<T>*> bfsConst(const Graph<T>& graph, const Node<T>* start
 template<typename T, typename NodePtr>
 std::vector<NodePtr> dfsImpl(const Graph<T>& graph, int startNodeId, std::unordered_set<int>* visited) {
     std::vector<NodePtr> result;
-    NodePtr startNode = NodeTraits::getNode(graph, startNodeId);
+    NodePtr startNode = NodeTraits::getNode<NodePtr, T>(graph, startNodeId);
     if (!startNode) return result;
 
     std::unordered_set<int> localVisited;
@@ -151,7 +170,7 @@ std::vector<NodePtr> dfsImpl(const Graph<T>& graph, int startNodeId, std::unorde
         s.pop();
         result.push_back(current);
 
-        auto neighbors = NodeTraits::getNeighbors(graph, current);
+        auto neighbors = NodeTraits::getNeighbors<NodePtr, T>(graph, current);
         for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it) {
             auto neighbor = *it;
             if (visitSet.find(neighbor->getId()) == visitSet.end()) {
@@ -235,7 +254,7 @@ void dfsRecursiveHelperImpl(const Graph<T>& graph, NodePtr current,
     visited.insert(current->getId());
     result.push_back(current);
 
-    auto neighbors = NodeTraits::getNeighbors(graph, current);
+    auto neighbors = NodeTraits::getNeighbors<NodePtr, T>(graph, current);
     for (auto neighbor : neighbors) {
         if (visited.find(neighbor->getId()) == visited.end()) {
             dfsRecursiveHelperImpl(graph, neighbor, visited, result);
@@ -262,7 +281,7 @@ void dfsRecursiveHelperConst(const Graph<T>& graph, const Node<T>* current,
 template<typename T, typename NodePtr, typename Result>
 Result dfsRecursiveImpl(const Graph<T>& graph, int startNodeId, std::unordered_set<int>* visited) {
     Result result;
-    NodePtr startNode = NodeTraits::getNode(graph, startNodeId);
+    NodePtr startNode = NodeTraits::getNode<NodePtr, T>(graph, startNodeId);
     if (!startNode) return result;
 
     std::unordered_set<int> localVisited;
