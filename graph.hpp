@@ -155,46 +155,6 @@ private:
 
     template<typename NodePtr>
     std::vector<NodePtr> getAllNodesImpl() const;
-
-    Graph* createSubGraph(const std::string& subGraphName = "");
-
-    Graph* getParentGraph() const;
-
-    std::vector<Graph*> getSubGraphs() const;
-
-    Graph* getSubGraph(const std::string& subGraphName) const;
-
-    Graph* getSubGraphAt(size_t index) const;
-
-    size_t getSubGraphCount() const;
-
-    bool removeSubGraph(Graph* subGraph);
-
-    bool removeSubGraph(const std::string& subGraphName);
-
-    bool removeSubGraphAt(size_t index);
-
-    int getDepth() const;
-
-    Graph* getRootGraph();
-
-    const Graph* getRootGraph() const;
-
-    bool isDescendantOf(const Graph* ancestor) const;
-
-    bool isAncestorOf(const Graph* descendant) const;
-
-    bool isRoot() const;
-
-    bool isLeaf() const;
-
-    void clear();
-
-    void clearAll();
-
-    void print(std::ostream& os = std::cout) const;
-
-    void printHierarchy(std::ostream& os = std::cout, int indent = 0) const;
 };
 
 template<typename T>
