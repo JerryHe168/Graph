@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <unordered_set>
 #include "graph.hpp"
 #include "algorithms.hpp"
 
@@ -600,6 +601,47 @@ void testGraphTraversalEdgeCases() {
     std::cout << "图遍历边界情况测试通过!" << std::endl;
 }
 
+void testGraphTraversalOptimized() {
+    std::cout << "\n===== 测试图遍历优化接口 =====" << std::endl;
+    
+    Graph<int> g("OptimizedTest", false);
+    Node<int>* n0 = g.addNode(0);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
+    Node<int>* n3 = g.addNode(3);
+    Node<int>* n4 = g.addNode(4);
+    g.addEdge(n0, n1);
+    g.addEdge(n0, n2);
+    g.addEdge(n1, n3);
+    g.addEdge(n2, n4);
+    
+    std::unordered_set<int> visited;
+    
+    std::vector<Node<int>*> bfsResult = bfs(g, n0, visited);
+    assert(bfsResult.size() == 5);
+    assert(visited.size() == 5);
+    
+    visited.clear();
+    std::vector<Node<int>*> dfsResult = dfs(g, n0, visited);
+    assert(dfsResult.size() == 5);
+    assert(visited.size() == 5);
+    
+    visited.clear();
+    std::vector<Node<int>*> dfsRecResult = dfsRecursive(g, n0, visited);
+    assert(dfsRecResult.size() == 5);
+    assert(visited.size() == 5);
+    
+    visited.clear();
+    bfs(g, n1, visited);
+    assert(visited.size() == 5);
+    
+    visited.clear();
+    bfs(g, n2, visited);
+    assert(visited.size() == 5);
+    
+    std::cout << "图遍历优化接口测试通过!" << std::endl;
+}
+
 int main() {
     std::cout << "======================================" << std::endl;
     std::cout << "   C++ 图论数据结构库测试程序" << std::endl;
@@ -622,6 +664,7 @@ int main() {
         testDFSAlgorithm();
         testDFSRecursiveAlgorithm();
         testGraphTraversalEdgeCases();
+        testGraphTraversalOptimized();
         
         std::cout << "\n======================================" << std::endl;
         std::cout << "   所有测试通过!" << std::endl;
