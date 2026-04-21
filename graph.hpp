@@ -148,6 +148,53 @@ public:
     void print(std::ostream& os = std::cout) const;
 
     void printHierarchy(std::ostream& os = std::cout, int indent = 0) const;
+
+private:
+    template<typename NodePtr>
+    std::vector<NodePtr> getNeighborsImpl(int nodeId) const;
+
+    template<typename NodePtr>
+    std::vector<NodePtr> getAllNodesImpl() const;
+
+    Graph* createSubGraph(const std::string& subGraphName = "");
+
+    Graph* getParentGraph() const;
+
+    std::vector<Graph*> getSubGraphs() const;
+
+    Graph* getSubGraph(const std::string& subGraphName) const;
+
+    Graph* getSubGraphAt(size_t index) const;
+
+    size_t getSubGraphCount() const;
+
+    bool removeSubGraph(Graph* subGraph);
+
+    bool removeSubGraph(const std::string& subGraphName);
+
+    bool removeSubGraphAt(size_t index);
+
+    int getDepth() const;
+
+    Graph* getRootGraph();
+
+    const Graph* getRootGraph() const;
+
+    bool isDescendantOf(const Graph* ancestor) const;
+
+    bool isAncestorOf(const Graph* descendant) const;
+
+    bool isRoot() const;
+
+    bool isLeaf() const;
+
+    void clear();
+
+    void clearAll();
+
+    void print(std::ostream& os = std::cout) const;
+
+    void printHierarchy(std::ostream& os = std::cout, int indent = 0) const;
 };
 
 template<typename T>
@@ -395,9 +442,10 @@ bool Graph<T>::hasEdge(const Node<T>* fromNode, const Node<T>* toNode) const {
 }
 
 template<typename T>
-std::vector<Node<T>*> Graph<T>::getNeighbors(int nodeId) const {
-    std::vector<Node<T>*> neighbors;
-    auto node = getNode(nodeId);
+template<typename NodePtr>
+std::vector<NodePtr> Graph<T>::getNeighborsImpl(int nodeId) const {
+    std::vector<NodePtr> neighbors;
+    const Node<T>* node = getNode(nodeId);
     if (!node) return neighbors;
 
     std::set<int> added;
@@ -408,7 +456,7 @@ std::vector<Node<T>*> Graph<T>::getNeighbors(int nodeId) const {
             if (added.find(neighborId) == added.end() && neighborId >= 0) {
                 auto nodeIt = nodes.find(neighborId);
                 if (nodeIt != nodes.end()) {
-                    neighbors.push_back(nodeIt->second.get());
+                    neighbors.push_back(reinterpret_cast<NodePtr>(nodeIt->second.get()));
                     added.insert(neighborId);
                 }
             }
@@ -416,6 +464,11 @@ std::vector<Node<T>*> Graph<T>::getNeighbors(int nodeId) const {
     }
 
     return neighbors;
+}
+
+template<typename T>
+std::vector<Node<T>*> Graph<T>::getNeighbors(int nodeId) const {
+    return getNeighborsImpl<Node<T>*>(nodeId);
 }
 
 template<typename T>
@@ -428,26 +481,7 @@ std::vector<Node<T>*> Graph<T>::getNeighbors(const Node<T>* node) const {
 
 template<typename T>
 std::vector<const Node<T>*> Graph<T>::getNeighborsConst(int nodeId) const {
-    std::vector<const Node<T>*> neighbors;
-    const Node<T>* node = getNode(nodeId);
-    if (!node) return neighbors;
-
-    std::set<int> added;
-    for (int edgeId : node->getOutgoingEdges()) {
-        auto edgeIt = edges.find(edgeId);
-        if (edgeIt != edges.end()) {
-            int neighborId = edgeIt->second->getOtherNodeId(nodeId);
-            if (added.find(neighborId) == added.end() && neighborId >= 0) {
-                auto nodeIt = nodes.find(neighborId);
-                if (nodeIt != nodes.end()) {
-                    neighbors.push_back(nodeIt->second.get());
-                    added.insert(neighborId);
-                }
-            }
-        }
-    }
-
-    return neighbors;
+    return getNeighborsImpl<const Node<T>*>(nodeId);
 }
 
 template<typename T>
@@ -480,21 +514,23 @@ std::vector<int> Graph<T>::getNeighborIds(int nodeId) const {
 }
 
 template<typename T>
-std::vector<Node<T>*> Graph<T>::getAllNodes() const {
-    std::vector<Node<T>*> result;
+template<typename NodePtr>
+std::vector<NodePtr> Graph<T>::getAllNodesImpl() const {
+    std::vector<NodePtr> result;
     for (const auto& pair : nodes) {
-        result.push_back(pair.second.get());
+        result.push_back(reinterpret_cast<NodePtr>(pair.second.get()));
     }
     return result;
 }
 
 template<typename T>
+std::vector<Node<T>*> Graph<T>::getAllNodes() const {
+    return getAllNodesImpl<Node<T>*>();
+}
+
+template<typename T>
 std::vector<const Node<T>*> Graph<T>::getAllNodesConst() const {
-    std::vector<const Node<T>*> result;
-    for (const auto& pair : nodes) {
-        result.push_back(pair.second.get());
-    }
-    return result;
+    return getAllNodesImpl<const Node<T>*>();
 }
 
 template<typename T>
