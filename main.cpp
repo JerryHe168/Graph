@@ -1,6 +1,11 @@
 #include <iostream>
 #include <cassert>
 #include <unordered_set>
+#ifdef _WIN32
+#include <windows.h>
+#include <fcntl.h>
+#include <io.h>
+#endif
 #include "graph.hpp"
 #include "algorithms.hpp"
 
@@ -643,6 +648,13 @@ void testGraphTraversalOptimized() {
 }
 
 int main() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stderr), _O_BINARY);
+#endif
+    
     std::cout << "======================================" << std::endl;
     std::cout << "   C++ 图论数据结构库测试程序" << std::endl;
     std::cout << "======================================" << std::endl;
