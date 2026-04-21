@@ -93,9 +93,15 @@ public:
 
     std::vector<Node<T>*> getNeighbors(const Node<T>* node) const;
 
+    std::vector<const Node<T>*> getNeighborsConst(int nodeId) const;
+
+    std::vector<const Node<T>*> getNeighborsConst(const Node<T>* node) const;
+
     std::vector<int> getNeighborIds(int nodeId) const;
 
     std::vector<Node<T>*> getAllNodes() const;
+
+    std::vector<const Node<T>*> getAllNodesConst() const;
 
     std::vector<Edge<T>*> getAllEdges() const;
 
@@ -421,6 +427,38 @@ std::vector<Node<T>*> Graph<T>::getNeighbors(const Node<T>* node) const {
 }
 
 template<typename T>
+std::vector<const Node<T>*> Graph<T>::getNeighborsConst(int nodeId) const {
+    std::vector<const Node<T>*> neighbors;
+    const Node<T>* node = getNode(nodeId);
+    if (!node) return neighbors;
+
+    std::set<int> added;
+    for (int edgeId : node->getOutgoingEdges()) {
+        auto edgeIt = edges.find(edgeId);
+        if (edgeIt != edges.end()) {
+            int neighborId = edgeIt->second->getOtherNodeId(nodeId);
+            if (added.find(neighborId) == added.end() && neighborId >= 0) {
+                auto nodeIt = nodes.find(neighborId);
+                if (nodeIt != nodes.end()) {
+                    neighbors.push_back(nodeIt->second.get());
+                    added.insert(neighborId);
+                }
+            }
+        }
+    }
+
+    return neighbors;
+}
+
+template<typename T>
+std::vector<const Node<T>*> Graph<T>::getNeighborsConst(const Node<T>* node) const {
+    if (!node) {
+        return std::vector<const Node<T>*>();
+    }
+    return getNeighborsConst(node->getId());
+}
+
+template<typename T>
 std::vector<int> Graph<T>::getNeighborIds(int nodeId) const {
     std::vector<int> neighborIds;
     auto node = getNode(nodeId);
@@ -444,6 +482,15 @@ std::vector<int> Graph<T>::getNeighborIds(int nodeId) const {
 template<typename T>
 std::vector<Node<T>*> Graph<T>::getAllNodes() const {
     std::vector<Node<T>*> result;
+    for (const auto& pair : nodes) {
+        result.push_back(pair.second.get());
+    }
+    return result;
+}
+
+template<typename T>
+std::vector<const Node<T>*> Graph<T>::getAllNodesConst() const {
+    std::vector<const Node<T>*> result;
     for (const auto& pair : nodes) {
         result.push_back(pair.second.get());
     }
