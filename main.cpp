@@ -401,6 +401,202 @@ void testEdgeCases() {
     std::cout << "边界情况测试通过!" << std::endl;
 }
 
+void testBFSAlgorithm() {
+    std::cout << "\n===== 测试BFS广度优先搜索算法 =====" << std::endl;
+    
+    Graph<int> g("BFSTest", false);
+    
+    Node<int>* n0 = g.addNode(0);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
+    Node<int>* n3 = g.addNode(3);
+    Node<int>* n4 = g.addNode(4);
+    Node<int>* n5 = g.addNode(5);
+    
+    g.addEdge(n0, n1);
+    g.addEdge(n0, n2);
+    g.addEdge(n1, n3);
+    g.addEdge(n1, n4);
+    g.addEdge(n2, n5);
+    
+    std::vector<Node<int>*> bfsResult = g.bfs(n0);
+    assert(bfsResult.size() == 6);
+    
+    assert(bfsResult[0]->getId() == 0);
+    assert(bfsResult[1]->getId() == 1 || bfsResult[1]->getId() == 2);
+    assert(bfsResult[2]->getId() == 1 || bfsResult[2]->getId() == 2);
+    
+    if (bfsResult[1]->getId() == 1) {
+        assert(bfsResult[3]->getId() == 3 || bfsResult[3]->getId() == 4);
+        assert(bfsResult[4]->getId() == 3 || bfsResult[4]->getId() == 4);
+        assert(bfsResult[5]->getId() == 5);
+    } else {
+        assert(bfsResult[3]->getId() == 5);
+        assert(bfsResult[4]->getId() == 3 || bfsResult[4]->getId() == 4);
+        assert(bfsResult[5]->getId() == 3 || bfsResult[5]->getId() == 4);
+    }
+    
+    std::vector<int> bfsIds = g.bfsIds(0);
+    assert(bfsIds.size() == 6);
+    assert(bfsIds[0] == 0);
+    
+    std::vector<Node<int>*> emptyResult = g.bfs(999);
+    assert(emptyResult.empty());
+    
+    std::vector<Node<int>*> nullResult = g.bfs(nullptr);
+    assert(nullResult.empty());
+    
+    Graph<int> directedG("DirectedBFSTest", true);
+    Node<int>* d0 = directedG.addNode(0);
+    Node<int>* d1 = directedG.addNode(1);
+    Node<int>* d2 = directedG.addNode(2);
+    directedG.addEdge(d0, d1);
+    directedG.addEdge(d1, d2);
+    
+    std::vector<Node<int>*> directedBFS = directedG.bfs(d0);
+    assert(directedBFS.size() == 3);
+    assert(directedBFS[0]->getId() == 0);
+    assert(directedBFS[1]->getId() == 1);
+    assert(directedBFS[2]->getId() == 2);
+    
+    std::vector<Node<int>*> fromD2 = directedG.bfs(d2);
+    assert(fromD2.size() == 1);
+    assert(fromD2[0]->getId() == 2);
+    
+    std::cout << "BFS算法测试通过!" << std::endl;
+}
+
+void testDFSAlgorithm() {
+    std::cout << "\n===== 测试DFS深度优先搜索算法 =====" << std::endl;
+    
+    Graph<int> g("DFSTest", false);
+    
+    Node<int>* n0 = g.addNode(0);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
+    Node<int>* n3 = g.addNode(3);
+    Node<int>* n4 = g.addNode(4);
+    Node<int>* n5 = g.addNode(5);
+    
+    g.addEdge(n0, n1);
+    g.addEdge(n0, n2);
+    g.addEdge(n1, n3);
+    g.addEdge(n1, n4);
+    g.addEdge(n2, n5);
+    
+    std::vector<Node<int>*> dfsResult = g.dfs(n0);
+    assert(dfsResult.size() == 6);
+    assert(dfsResult[0]->getId() == 0);
+    
+    std::vector<int> dfsIds = g.dfsIds(0);
+    assert(dfsIds.size() == 6);
+    assert(dfsIds[0] == 0);
+    
+    std::vector<Node<int>*> emptyResult = g.dfs(999);
+    assert(emptyResult.empty());
+    
+    std::vector<Node<int>*> nullResult = g.dfs(nullptr);
+    assert(nullResult.empty());
+    
+    Graph<int> directedG("DirectedDFSTest", true);
+    Node<int>* d0 = directedG.addNode(0);
+    Node<int>* d1 = directedG.addNode(1);
+    Node<int>* d2 = directedG.addNode(2);
+    Node<int>* d3 = directedG.addNode(3);
+    directedG.addEdge(d0, d1);
+    directedG.addEdge(d0, d2);
+    directedG.addEdge(d1, d3);
+    directedG.addEdge(d2, d3);
+    
+    std::vector<Node<int>*> directedDFS = directedG.dfs(d0);
+    assert(directedDFS.size() == 4);
+    assert(directedDFS[0]->getId() == 0);
+    
+    std::cout << "DFS算法(迭代版)测试通过!" << std::endl;
+}
+
+void testDFSRecursiveAlgorithm() {
+    std::cout << "\n===== 测试DFS递归深度优先搜索算法 =====" << std::endl;
+    
+    Graph<int> g("DFSRecursiveTest", false);
+    
+    Node<int>* n0 = g.addNode(0);
+    Node<int>* n1 = g.addNode(1);
+    Node<int>* n2 = g.addNode(2);
+    Node<int>* n3 = g.addNode(3);
+    
+    g.addEdge(n0, n1);
+    g.addEdge(n0, n2);
+    g.addEdge(n1, n3);
+    
+    std::vector<Node<int>*> dfsResult = g.dfsRecursive(n0);
+    assert(dfsResult.size() == 4);
+    assert(dfsResult[0]->getId() == 0);
+    
+    std::vector<Node<int>*> emptyResult = g.dfsRecursive(999);
+    assert(emptyResult.empty());
+    
+    std::vector<Node<int>*> nullResult = g.dfsRecursive(nullptr);
+    assert(nullResult.empty());
+    
+    Graph<int> linearG("LinearDFS", true);
+    Node<int>* l0 = linearG.addNode(0);
+    Node<int>* l1 = linearG.addNode(1);
+    Node<int>* l2 = linearG.addNode(2);
+    Node<int>* l3 = linearG.addNode(3);
+    linearG.addEdge(l0, l1);
+    linearG.addEdge(l1, l2);
+    linearG.addEdge(l2, l3);
+    
+    std::vector<Node<int>*> linearDFS = linearG.dfsRecursive(l0);
+    assert(linearDFS.size() == 4);
+    assert(linearDFS[0]->getId() == 0);
+    assert(linearDFS[1]->getId() == 1);
+    assert(linearDFS[2]->getId() == 2);
+    assert(linearDFS[3]->getId() == 3);
+    
+    std::cout << "DFS算法(递归版)测试通过!" << std::endl;
+}
+
+void testGraphTraversalEdgeCases() {
+    std::cout << "\n===== 测试图遍历边界情况 =====" << std::endl;
+    
+    Graph<int> emptyG("EmptyGraph", false);
+    assert(emptyG.bfs(0).empty());
+    assert(emptyG.dfs(0).empty());
+    assert(emptyG.dfsRecursive(0).empty());
+    
+    Graph<int> singleNodeG("SingleNode", false);
+    Node<int>* n = singleNodeG.addNode(42);
+    
+    std::vector<Node<int>*> bfsSingle = singleNodeG.bfs(n);
+    assert(bfsSingle.size() == 1);
+    assert(bfsSingle[0]->getId() == 0);
+    
+    std::vector<Node<int>*> dfsSingle = singleNodeG.dfs(n);
+    assert(dfsSingle.size() == 1);
+    assert(dfsSingle[0]->getId() == 0);
+    
+    std::vector<Node<int>*> dfsRecSingle = singleNodeG.dfsRecursive(n);
+    assert(dfsRecSingle.size() == 1);
+    assert(dfsRecSingle[0]->getId() == 0);
+    
+    Graph<int> disconnectedG("Disconnected", false);
+    Node<int>* n0 = disconnectedG.addNode(0);
+    Node<int>* n1 = disconnectedG.addNode(1);
+    Node<int>* n2 = disconnectedG.addNode(2);
+    disconnectedG.addEdge(n0, n1);
+    
+    std::vector<Node<int>*> bfsDisconnected = disconnectedG.bfs(n0);
+    assert(bfsDisconnected.size() == 2);
+    
+    std::vector<Node<int>*> bfsFromN2 = disconnectedG.bfs(n2);
+    assert(bfsFromN2.size() == 1);
+    assert(bfsFromN2[0]->getId() == 2);
+    
+    std::cout << "图遍历边界情况测试通过!" << std::endl;
+}
+
 int main() {
     std::cout << "======================================" << std::endl;
     std::cout << "   C++ 图论数据结构库测试程序" << std::endl;
@@ -419,6 +615,10 @@ int main() {
         testPrintFunctions();
         testNeighborQueries();
         testEdgeCases();
+        testBFSAlgorithm();
+        testDFSAlgorithm();
+        testDFSRecursiveAlgorithm();
+        testGraphTraversalEdgeCases();
         
         std::cout << "\n======================================" << std::endl;
         std::cout << "   所有测试通过!" << std::endl;
