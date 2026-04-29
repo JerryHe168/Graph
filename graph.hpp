@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
-#include <set>
+#include <unordered_set>
 #include <memory>
 #include <algorithm>
 #include <stdexcept>
@@ -15,7 +15,7 @@
 namespace graph {
 
 template<typename T = int>
-class Graph {
+class Graph : public std::enable_shared_from_this<Graph<T>> {
 
 template<typename U>
 friend std::ostream& operator<<(std::ostream& os, const Graph<U>& g);
@@ -28,22 +28,30 @@ private:
     int nextEdgeId;
     bool isDirected;
 
-    Graph* parentGraph;
-    std::vector<Graph*> subGraphs;
+    std::weak_ptr<Graph<T>> parentGraph;
+    std::vector<std::shared_ptr<Graph<T>>> subGraphs;
 
     int generateNodeId();
     int generateEdgeId();
 
     void deepCopy(const Graph& other);
+    void deepCopySubGraphs(const Graph& other, std::shared_ptr<Graph<T>> newParent);
+
+    std::shared_ptr<Graph<T>> getSharedPtr();
+    std::shared_ptr<const Graph<T>> getSharedPtr() const;
 
 public:
     Graph(const std::string& name = "", bool directed = false);
 
-    Graph(const Graph& other);
+    Graph(const Graph& other) = delete;
+    Graph& operator=(const Graph& other) = delete;
 
-    Graph& operator=(const Graph& other);
+    Graph(Graph&& other) = default;
+    Graph& operator=(Graph&& other) = default;
 
-    ~Graph();
+    ~Graph() = default;
+
+    static std::shared_ptr<Graph<T>> create(const std::string& name = "", bool directed = false);
 
     const std::string& getName() const;
     void setName(const std::string& newName);
@@ -109,19 +117,19 @@ public:
 
     std::vector<Edge<T>*> getEdgesTo(int nodeId) const;
 
-    Graph* createSubGraph(const std::string& subGraphName = "");
+    std::shared_ptr<Graph<T>> createSubGraph(const std::string& subGraphName = "");
 
-    Graph* getParentGraph() const;
+    std::shared_ptr<Graph<T>> getParentGraph() const;
 
-    std::vector<Graph*> getSubGraphs() const;
+    std::vector<std::shared_ptr<Graph<T>>> getSubGraphs() const;
 
-    Graph* getSubGraph(const std::string& subGraphName) const;
+    std::shared_ptr<Graph<T>> getSubGraph(const std::string& subGraphName) const;
 
-    Graph* getSubGraphAt(size_t index) const;
+    std::shared_ptr<Graph<T>> getSubGraphAt(size_t index) const;
 
     size_t getSubGraphCount() const;
 
-    bool removeSubGraph(Graph* subGraph);
+    bool removeSubGraph(std::shared_ptr<Graph<T>> subGraph);
 
     bool removeSubGraph(const std::string& subGraphName);
 
@@ -129,9 +137,9 @@ public:
 
     int getDepth() const;
 
-    Graph* getRootGraph();
+    std::shared_ptr<Graph<T>> getRootGraph();
 
-    const Graph* getRootGraph() const;
+    std::shared_ptr<const Graph<T>> getRootGraph() const;
 
     bool isDescendantOf(const Graph* ancestor) const;
 
@@ -149,6 +157,8 @@ public:
 
     void printHierarchy(std::ostream& os = std::cout, int indent = 0) const;
 
+    std::shared_ptr<Graph<T>> deepClone() const;
+
 private:
     template<typename NodePtr>
     std::vector<NodePtr> getNeighborsImpl(int nodeId) const;
@@ -165,32 +175,21 @@ int Graph<T>::generateEdgeId() { return nextEdgeId++; }
 
 template<typename T>
 Graph<T>::Graph(const std::string& name, bool directed)
-    : name(name), nextNodeId(0), nextEdgeId(0), isDirected(directed),
-      parentGraph(nullptr) {}
+    : name(name), nextNodeId(0), nextEdgeId(0), isDirected(directed) {}
 
 template<typename T>
-Graph<T>::Graph(const Graph& other) : parentGraph(nullptr) {
-    deepCopy(other);
+std::shared_ptr<Graph<T>> Graph<T>::create(const std::string& name, bool directed) {
+    return std::make_shared<Graph<T>>(name, directed);
 }
 
 template<typename T>
-Graph<T>& Graph<T>::operator=(const Graph& other) {
-    if (this != &other) {
-        for (auto sub : subGraphs) {
-            delete sub;
-        }
-        subGraphs.clear();
-        parentGraph = nullptr;
-        deepCopy(other);
-    }
-    return *this;
+std::shared_ptr<Graph<T>> Graph<T>::getSharedPtr() {
+    return this->shared_from_this();
 }
 
 template<typename T>
-Graph<T>::~Graph() {
-    for (auto subgraph : subGraphs) {
-        delete subgraph;
-    }
+std::shared_ptr<const Graph<T>> Graph<T>::getSharedPtr() const {
+    return this->shared_from_this();
 }
 
 template<typename T>
@@ -288,17 +287,21 @@ Edge<T>* Graph<T>::addEdge(int fromNodeId, int toNodeId, double weight) {
         return nullptr;
     }
 
+    auto fromNode = nodes[fromNodeId];
+    auto toNode = nodes[toNodeId];
+
     int id = generateEdgeId();
     auto edge = std::make_shared<Edge<T>>(this, id, fromNodeId, toNodeId, weight, isDirected);
-    edges[id] = edge;
 
-    nodes[fromNodeId]->addOutgoingEdge(id);
-    nodes[toNodeId]->addIncomingEdge(id);
+    fromNode->addOutgoingEdge(id);
+    toNode->addIncomingEdge(id);
 
     if (!isDirected) {
-        nodes[toNodeId]->addOutgoingEdge(id);
-        nodes[fromNodeId]->addIncomingEdge(id);
+        toNode->addOutgoingEdge(id);
+        fromNode->addIncomingEdge(id);
     }
+
+    edges[id] = edge;
 
     return edge.get();
 }
@@ -408,7 +411,7 @@ std::vector<NodePtr> Graph<T>::getNeighborsImpl(int nodeId) const {
     const Node<T>* node = getNode(nodeId);
     if (!node) return neighbors;
 
-    std::set<int> added;
+    std::unordered_set<int> added;
     for (int edgeId : node->getOutgoingEdges()) {
         auto edgeIt = edges.find(edgeId);
         if (edgeIt != edges.end()) {
@@ -416,7 +419,11 @@ std::vector<NodePtr> Graph<T>::getNeighborsImpl(int nodeId) const {
             if (added.find(neighborId) == added.end() && neighborId >= 0) {
                 auto nodeIt = nodes.find(neighborId);
                 if (nodeIt != nodes.end()) {
-                    neighbors.push_back(reinterpret_cast<NodePtr>(nodeIt->second.get()));
+                    if constexpr (std::is_same_v<NodePtr, const Node<T>*>) {
+                        neighbors.push_back(nodeIt->second.get());
+                    } else {
+                        neighbors.push_back(const_cast<Node<T>*>(nodeIt->second.get()));
+                    }
                     added.insert(neighborId);
                 }
             }
@@ -458,7 +465,7 @@ std::vector<int> Graph<T>::getNeighborIds(int nodeId) const {
     auto node = getNode(nodeId);
     if (!node) return neighborIds;
 
-    std::set<int> added;
+    std::unordered_set<int> added;
     for (int edgeId : node->getOutgoingEdges()) {
         auto edgeIt = edges.find(edgeId);
         if (edgeIt != edges.end()) {
@@ -478,7 +485,11 @@ template<typename NodePtr>
 std::vector<NodePtr> Graph<T>::getAllNodesImpl() const {
     std::vector<NodePtr> result;
     for (const auto& pair : nodes) {
-        result.push_back(reinterpret_cast<NodePtr>(pair.second.get()));
+        if constexpr (std::is_same_v<NodePtr, const Node<T>*>) {
+            result.push_back(pair.second.get());
+        } else {
+            result.push_back(const_cast<Node<T>*>(pair.second.get()));
+        }
     }
     return result;
 }
@@ -533,31 +544,31 @@ std::vector<Edge<T>*> Graph<T>::getEdgesTo(int nodeId) const {
 }
 
 template<typename T>
-Graph<T>* Graph<T>::createSubGraph(const std::string& subGraphName) {
+std::shared_ptr<Graph<T>> Graph<T>::createSubGraph(const std::string& subGraphName) {
     std::string actualName = subGraphName;
     if (actualName.empty()) {
         actualName = name + "_sub_" + std::to_string(subGraphs.size());
     }
 
-    Graph* subGraph = new Graph(actualName, isDirected);
-    subGraph->parentGraph = this;
+    auto subGraph = Graph<T>::create(actualName, isDirected);
+    subGraph->parentGraph = this->getSharedPtr();
     subGraphs.push_back(subGraph);
     return subGraph;
 }
 
 template<typename T>
-Graph<T>* Graph<T>::getParentGraph() const {
-    return parentGraph;
+std::shared_ptr<Graph<T>> Graph<T>::getParentGraph() const {
+    return parentGraph.lock();
 }
 
 template<typename T>
-std::vector<Graph<T>*> Graph<T>::getSubGraphs() const {
+std::vector<std::shared_ptr<Graph<T>>> Graph<T>::getSubGraphs() const {
     return subGraphs;
 }
 
 template<typename T>
-Graph<T>* Graph<T>::getSubGraph(const std::string& subGraphName) const {
-    for (Graph* sub : subGraphs) {
+std::shared_ptr<Graph<T>> Graph<T>::getSubGraph(const std::string& subGraphName) const {
+    for (const auto& sub : subGraphs) {
         if (sub->getName() == subGraphName) {
             return sub;
         }
@@ -566,7 +577,7 @@ Graph<T>* Graph<T>::getSubGraph(const std::string& subGraphName) const {
 }
 
 template<typename T>
-Graph<T>* Graph<T>::getSubGraphAt(size_t index) const {
+std::shared_ptr<Graph<T>> Graph<T>::getSubGraphAt(size_t index) const {
     if (index >= subGraphs.size()) {
         return nullptr;
     }
@@ -579,19 +590,18 @@ size_t Graph<T>::getSubGraphCount() const {
 }
 
 template<typename T>
-bool Graph<T>::removeSubGraph(Graph* subGraph) {
+bool Graph<T>::removeSubGraph(std::shared_ptr<Graph<T>> subGraph) {
     auto it = std::find(subGraphs.begin(), subGraphs.end(), subGraph);
     if (it == subGraphs.end()) {
         return false;
     }
     subGraphs.erase(it);
-    delete subGraph;
     return true;
 }
 
 template<typename T>
 bool Graph<T>::removeSubGraph(const std::string& subGraphName) {
-    Graph* subGraph = getSubGraph(subGraphName);
+    auto subGraph = getSubGraph(subGraphName);
     if (subGraph) {
         return removeSubGraph(subGraph);
     }
@@ -603,49 +613,47 @@ bool Graph<T>::removeSubGraphAt(size_t index) {
     if (index >= subGraphs.size()) {
         return false;
     }
-    Graph* subGraph = subGraphs[index];
     subGraphs.erase(subGraphs.begin() + index);
-    delete subGraph;
     return true;
 }
 
 template<typename T>
 int Graph<T>::getDepth() const {
     int depth = 0;
-    Graph* current = parentGraph;
+    auto current = parentGraph.lock();
     while (current) {
         depth++;
-        current = current->parentGraph;
+        current = current->parentGraph.lock();
     }
     return depth;
 }
 
 template<typename T>
-Graph<T>* Graph<T>::getRootGraph() {
-    Graph* current = this;
-    while (current->parentGraph) {
-        current = current->parentGraph;
+std::shared_ptr<Graph<T>> Graph<T>::getRootGraph() {
+    auto current = this->getSharedPtr();
+    while (auto p = current->parentGraph.lock()) {
+        current = p;
     }
     return current;
 }
 
 template<typename T>
-const Graph<T>* Graph<T>::getRootGraph() const {
-    const Graph* current = this;
-    while (current->parentGraph) {
-        current = current->parentGraph;
+std::shared_ptr<const Graph<T>> Graph<T>::getRootGraph() const {
+    auto current = this->getSharedPtr();
+    while (auto p = current->parentGraph.lock()) {
+        current = p;
     }
     return current;
 }
 
 template<typename T>
 bool Graph<T>::isDescendantOf(const Graph* ancestor) const {
-    const Graph* current = parentGraph;
+    auto current = parentGraph.lock();
     while (current) {
-        if (current == ancestor) {
+        if (current.get() == ancestor) {
             return true;
         }
-        current = current->parentGraph;
+        current = current->parentGraph.lock();
     }
     return false;
 }
@@ -657,7 +665,7 @@ bool Graph<T>::isAncestorOf(const Graph* descendant) const {
 
 template<typename T>
 bool Graph<T>::isRoot() const {
-    return parentGraph == nullptr;
+    return parentGraph.expired();
 }
 
 template<typename T>
@@ -676,53 +684,53 @@ void Graph<T>::clear() {
 template<typename T>
 void Graph<T>::clearAll() {
     clear();
-    for (auto sub : subGraphs) {
-        delete sub;
-    }
     subGraphs.clear();
 }
 
 template<typename T>
-void Graph<T>::print(std::ostream& os) const {
-    os << "Graph: " << name << std::endl;
-    os << "Type: " << (isDirected ? "Directed" : "Undirected") << std::endl;
-    os << "Nodes (" << nodes.size() << "):" << std::endl;
-    for (const auto& pair : nodes) {
-        os << "  Node " << pair.first << ": " << pair.second->getData()
-           << " (in: " << pair.second->getInDegree()
-           << ", out: " << pair.second->getOutDegree() << ")" << std::endl;
-    }
-    os << "Edges (" << edges.size() << "):" << std::endl;
-    for (const auto& pair : edges) {
-        const Edge<T>* e = pair.second.get();
-        os << "  Edge " << e->getId() << ": "
-           << e->getFromNodeId() << " -> " << e->getToNodeId()
-           << " (weight: " << e->getWeight() << ")" << std::endl;
-    }
+void Graph<T>::deepCopySubGraphs(const Graph<T>& other, std::shared_ptr<Graph<T>> newParent) {
+    for (const auto& sub : other.subGraphs) {
+        auto newSub = Graph<T>::create(sub->getName(), sub->isDirected);
+        newSub->parentGraph = newParent;
 
-    if (!subGraphs.empty()) {
-        os << "Subgraphs (" << subGraphs.size() << "):" << std::endl;
-        for (const Graph* sub : subGraphs) {
-            os << "  - " << sub->getName() << " (depth: " << sub->getDepth()
-               << ", nodes: " << sub->getNodeCount() << ")" << std::endl;
+        for (const auto& pair : sub->nodes) {
+            auto node = std::make_shared<Node<T>>(newSub.get(), pair.first, pair.second->getData());
+            newSub->nodes[pair.first] = node;
         }
-    }
 
-    if (parentGraph) {
-        os << "Parent graph: " << parentGraph->getName() << std::endl;
-    }
-    os << "------------------------" << std::endl;
-}
+        for (const auto& pair : sub->edges) {
+            const Edge<T>* origEdge = pair.second.get();
+            auto edge = std::make_shared<Edge<T>>(
+                newSub.get(), origEdge->getId(),
+                origEdge->getFromNodeId(), origEdge->getToNodeId(),
+                origEdge->getWeight(), origEdge->isDirected()
+            );
 
-template<typename T>
-void Graph<T>::printHierarchy(std::ostream& os, int indent) const {
-    std::string indentStr(indent * 2, ' ');
-    os << indentStr << "Graph: " << name
-       << " (Nodes: " << nodes.size() << ", Edges: " << edges.size()
-       << ", Depth: " << getDepth() << ")" << std::endl;
+            auto fromNode = newSub->nodes.find(origEdge->getFromNodeId());
+            if (fromNode != newSub->nodes.end()) {
+                fromNode->second->addOutgoingEdge(origEdge->getId());
+                if (!newSub->isDirected) {
+                    fromNode->second->addIncomingEdge(origEdge->getId());
+                }
+            }
 
-    for (const Graph* sub : subGraphs) {
-        sub->printHierarchy(os, indent + 1);
+            auto toNode = newSub->nodes.find(origEdge->getToNodeId());
+            if (toNode != newSub->nodes.end()) {
+                toNode->second->addIncomingEdge(origEdge->getId());
+                if (!newSub->isDirected) {
+                    toNode->second->addOutgoingEdge(origEdge->getId());
+                }
+            }
+
+            newSub->edges[pair.first] = edge;
+        }
+
+        newSub->nextNodeId = sub->nextNodeId;
+        newSub->nextEdgeId = sub->nextEdgeId;
+
+        newSub->deepCopySubGraphs(*sub, newSub);
+
+        newParent->subGraphs.push_back(newSub);
     }
 }
 
@@ -735,6 +743,8 @@ void Graph<T>::deepCopy(const Graph<T>& other) {
 
     nodes.clear();
     edges.clear();
+    subGraphs.clear();
+    parentGraph.reset();
 
     for (const auto& pair : other.nodes) {
         auto node = std::make_shared<Node<T>>(this, pair.first, pair.second->getData());
@@ -767,10 +777,57 @@ void Graph<T>::deepCopy(const Graph<T>& other) {
         }
     }
 
-    for (const Graph* sub : other.subGraphs) {
-        Graph* newSub = new Graph(*sub);
-        newSub->parentGraph = this;
-        subGraphs.push_back(newSub);
+    deepCopySubGraphs(other, this->getSharedPtr());
+}
+
+template<typename T>
+std::shared_ptr<Graph<T>> Graph<T>::deepClone() const {
+    auto clone = Graph<T>::create(name, isDirected);
+    clone->deepCopy(*this);
+    return clone;
+}
+
+template<typename T>
+void Graph<T>::print(std::ostream& os) const {
+    os << "Graph: " << name << std::endl;
+    os << "Type: " << (isDirected ? "Directed" : "Undirected") << std::endl;
+    os << "Nodes (" << nodes.size() << "):" << std::endl;
+    for (const auto& pair : nodes) {
+        os << "  Node " << pair.first << ": " << pair.second->getData()
+           << " (in: " << pair.second->getInDegree()
+           << ", out: " << pair.second->getOutDegree() << ")" << std::endl;
+    }
+    os << "Edges (" << edges.size() << "):" << std::endl;
+    for (const auto& pair : edges) {
+        const Edge<T>* e = pair.second.get();
+        os << "  Edge " << e->getId() << ": "
+           << e->getFromNodeId() << " -> " << e->getToNodeId()
+           << " (weight: " << e->getWeight() << ")" << std::endl;
+    }
+
+    if (!subGraphs.empty()) {
+        os << "Subgraphs (" << subGraphs.size() << "):" << std::endl;
+        for (const auto& sub : subGraphs) {
+            os << "  - " << sub->getName() << " (depth: " << sub->getDepth()
+               << ", nodes: " << sub->getNodeCount() << ")" << std::endl;
+        }
+    }
+
+    if (auto p = parentGraph.lock()) {
+        os << "Parent graph: " << p->getName() << std::endl;
+    }
+    os << "------------------------" << std::endl;
+}
+
+template<typename T>
+void Graph<T>::printHierarchy(std::ostream& os, int indent) const {
+    std::string indentStr(indent * 2, ' ');
+    os << indentStr << "Graph: " << name
+       << " (Nodes: " << nodes.size() << ", Edges: " << edges.size()
+       << ", Depth: " << getDepth() << ")" << std::endl;
+
+    for (const auto& sub : subGraphs) {
+        sub->printHierarchy(os, indent + 1);
     }
 }
 
@@ -779,12 +836,6 @@ std::ostream& operator<<(std::ostream& os, const Graph<T>& g) {
     g.print(os);
     return os;
 }
-
-template class Graph<int>;
-template class Graph<std::string>;
-
-template std::ostream& operator<<(std::ostream& os, const Graph<int>& g);
-template std::ostream& operator<<(std::ostream& os, const Graph<std::string>& g);
 
 }
 

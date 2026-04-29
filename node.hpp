@@ -1,7 +1,7 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include <set>
+#include <unordered_set>
 
 namespace graph {
 
@@ -13,8 +13,8 @@ class Node {
 private:
     T data;
     int id;
-    std::set<int> incomingEdges;
-    std::set<int> outgoingEdges;
+    std::unordered_set<int> incomingEdges;
+    std::unordered_set<int> outgoingEdges;
     Graph<T>* ownerGraph;
 
 public:
@@ -26,12 +26,12 @@ public:
     void setData(const T& newData);
     Graph<T>* getOwnerGraph() const;
     
-    const std::set<int>& getIncomingEdges() const;
-    const std::set<int>& getOutgoingEdges() const;
+    const std::unordered_set<int>& getIncomingEdges() const;
+    const std::unordered_set<int>& getOutgoingEdges() const;
     
     size_t getInDegree() const;
     size_t getOutDegree() const;
-    size_t getDegree() const;
+    size_t getTotalDegree() const;
     
     void addIncomingEdge(int edgeId);
     void addOutgoingEdge(int edgeId);
@@ -59,10 +59,10 @@ template<typename T>
 Graph<T>* Node<T>::getOwnerGraph() const { return ownerGraph; }
 
 template<typename T>
-const std::set<int>& Node<T>::getIncomingEdges() const { return incomingEdges; }
+const std::unordered_set<int>& Node<T>::getIncomingEdges() const { return incomingEdges; }
 
 template<typename T>
-const std::set<int>& Node<T>::getOutgoingEdges() const { return outgoingEdges; }
+const std::unordered_set<int>& Node<T>::getOutgoingEdges() const { return outgoingEdges; }
 
 template<typename T>
 size_t Node<T>::getInDegree() const { return incomingEdges.size(); }
@@ -71,11 +71,8 @@ template<typename T>
 size_t Node<T>::getOutDegree() const { return outgoingEdges.size(); }
 
 template<typename T>
-size_t Node<T>::getDegree() const { 
-    if (ownerGraph && ownerGraph->isDirectedGraph()) {
-        return incomingEdges.size() + outgoingEdges.size();
-    }
-    return outgoingEdges.size();
+size_t Node<T>::getTotalDegree() const { 
+    return incomingEdges.size() + outgoingEdges.size();
 }
 
 template<typename T>
@@ -89,9 +86,6 @@ void Node<T>::removeIncomingEdge(int edgeId) { incomingEdges.erase(edgeId); }
 
 template<typename T>
 void Node<T>::removeOutgoingEdge(int edgeId) { outgoingEdges.erase(edgeId); }
-
-template class Node<int>;
-template class Node<std::string>;
 
 }
 

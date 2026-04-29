@@ -63,9 +63,6 @@ int Edge<T>::getOtherNodeId(int nodeId) const {
     return -1;
 }
 
-template class Edge<int>;
-template class Edge<std::string>;
-
 }
 
 #endif
