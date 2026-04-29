@@ -37,9 +37,6 @@ private:
     void deepCopy(const Graph& other);
     void deepCopySubGraphs(const Graph& other, std::shared_ptr<Graph<T>> newParent);
 
-    std::shared_ptr<Graph<T>> getSharedPtr();
-    std::shared_ptr<const Graph<T>> getSharedPtr() const;
-
 public:
     Graph(const std::string& name = "", bool directed = false);
 
@@ -180,16 +177,6 @@ Graph<T>::Graph(const std::string& name, bool directed)
 template<typename T>
 std::shared_ptr<Graph<T>> Graph<T>::create(const std::string& name, bool directed) {
     return std::make_shared<Graph<T>>(name, directed);
-}
-
-template<typename T>
-std::shared_ptr<Graph<T>> Graph<T>::getSharedPtr() {
-    return this->shared_from_this();
-}
-
-template<typename T>
-std::shared_ptr<const Graph<T>> Graph<T>::getSharedPtr() const {
-    return this->shared_from_this();
 }
 
 template<typename T>
@@ -551,7 +538,7 @@ std::shared_ptr<Graph<T>> Graph<T>::createSubGraph(const std::string& subGraphNa
     }
 
     auto subGraph = Graph<T>::create(actualName, isDirected);
-    subGraph->parentGraph = this->getSharedPtr();
+    subGraph->parentGraph = this->shared_from_this();
     subGraphs.push_back(subGraph);
     return subGraph;
 }
@@ -630,7 +617,7 @@ int Graph<T>::getDepth() const {
 
 template<typename T>
 std::shared_ptr<Graph<T>> Graph<T>::getRootGraph() {
-    auto current = this->getSharedPtr();
+    auto current = this->shared_from_this();
     while (auto p = current->parentGraph.lock()) {
         current = p;
     }
@@ -639,7 +626,7 @@ std::shared_ptr<Graph<T>> Graph<T>::getRootGraph() {
 
 template<typename T>
 std::shared_ptr<const Graph<T>> Graph<T>::getRootGraph() const {
-    auto current = this->getSharedPtr();
+    auto current = this->shared_from_this();
     while (auto p = current->parentGraph.lock()) {
         current = p;
     }
@@ -777,7 +764,7 @@ void Graph<T>::deepCopy(const Graph<T>& other) {
         }
     }
 
-    deepCopySubGraphs(other, this->getSharedPtr());
+    deepCopySubGraphs(other, this->shared_from_this());
 }
 
 template<typename T>
